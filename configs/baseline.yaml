@@ -1,0 +1,38 @@
+# EXP-001：基线实验，作为后续实验的对照组。
+# 核心参数：学习率 0.005，Batch Size 4，解冻 ResNet-50 的最后 3 个阶段。
+experiment:
+  id: EXP-001
+  name: baseline
+
+seed: 42
+device: auto
+
+data:
+  dataset_root: datastes  # train/val/test 内均为同名 JPG + Labelme JSON
+  class_names: [cat]
+  num_workers: 4
+
+model:
+  backbone: resnet50_fpn
+  pretrained: true
+  trainable_backbone_layers: 3  # 基线：训练 ResNet-50 Backbone 的最后 3 个阶段
+  min_size: 640
+  max_size: 1024
+
+training:
+  epochs: 30
+  batch_size: 4       # 基线 Batch Size
+  learning_rate: 0.005  # 基线学习率
+  momentum: 0.9
+  weight_decay: 0.0005
+  step_size: 10
+  gamma: 0.1
+  gradient_clip_norm: 10.0
+  amp: true
+  horizontal_flip_probability: 0.5
+  output_dir: outputs/exp001_baseline
+
+evaluation:
+  score_threshold: 0.5  # 低于该置信度的预测框不参与过检/漏检统计
+  iou_threshold: 0.5    # IoU 达到该阈值才算正确匹配（TP）
+  max_error_images: 30  # 最多保存多少张过检/漏检对照图

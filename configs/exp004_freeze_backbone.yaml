@@ -1,0 +1,39 @@
+# EXP-004：冻结 Backbone 对比实验。
+# 与 EXP-001 相比，将 trainable_backbone_layers 从 3 改为 0，冻结 ResNet-50 主干网络。
+# Faster R-CNN 的 RPN、FPN 和 ROI Heads 仍会参与训练。
+experiment:
+  id: EXP-004
+  name: freeze_backbone
+
+seed: 42
+device: auto
+
+data:
+  dataset_root: datastes  # train/val/test 内均为同名 JPG + Labelme JSON
+  class_names: [cat]
+  num_workers: 4
+
+model:
+  backbone: resnet50_fpn
+  pretrained: true
+  trainable_backbone_layers: 0  # 实验变量：冻结 ResNet-50 Backbone
+  min_size: 640
+  max_size: 1024
+
+training:
+  epochs: 30
+  batch_size: 4         # 与 EXP-001 相同
+  learning_rate: 0.005  # 与 EXP-001 相同，便于单独比较冻结 Backbone 的影响
+  momentum: 0.9
+  weight_decay: 0.0005
+  step_size: 10
+  gamma: 0.1
+  gradient_clip_norm: 10.0
+  amp: true
+  horizontal_flip_probability: 0.5
+  output_dir: outputs/exp004_freeze_backbone
+
+evaluation:
+  score_threshold: 0.5  # 低于该置信度的预测框不参与过检/漏检统计
+  iou_threshold: 0.5    # IoU 达到该阈值才算正确匹配（TP）
+  max_error_images: 30  # 最多保存多少张过检/漏检对照图

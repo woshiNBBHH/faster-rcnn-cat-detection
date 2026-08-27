@@ -1,0 +1,38 @@
+# EXP-002：学习率对比实验。
+# 与 EXP-001 相比，只将学习率从 0.005 降低到 0.001，其余核心参数保持一致。
+experiment:
+  id: EXP-002
+  name: lr_001
+
+seed: 42
+device: auto
+
+data:
+  dataset_root: datastes  # train/val/test 内均为同名 JPG + Labelme JSON
+  class_names: [cat]
+  num_workers: 4
+
+model:
+  backbone: resnet50_fpn
+  pretrained: true
+  trainable_backbone_layers: 3  # 与 EXP-001 相同
+  min_size: 640
+  max_size: 1024
+
+training:
+  epochs: 30
+  batch_size: 4         # 与 EXP-001 相同
+  learning_rate: 0.001  # 实验变量：基线为 0.005，本实验降为 0.001
+  momentum: 0.9
+  weight_decay: 0.0005
+  step_size: 10
+  gamma: 0.1
+  gradient_clip_norm: 10.0
+  amp: true
+  horizontal_flip_probability: 0.5
+  output_dir: outputs/exp002_lr_001
+
+evaluation:
+  score_threshold: 0.5  # 低于该置信度的预测框不参与过检/漏检统计
+  iou_threshold: 0.5    # IoU 达到该阈值才算正确匹配（TP）
+  max_error_images: 30  # 最多保存多少张过检/漏检对照图

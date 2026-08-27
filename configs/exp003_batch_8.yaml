@@ -1,0 +1,38 @@
+# EXP-003：Batch Size 对比实验。
+# 与 EXP-001 相比，只将 Batch Size 从 4 增大到 8，其余核心参数保持一致。
+experiment:
+  id: EXP-003
+  name: batch_8
+
+seed: 42
+device: auto
+
+data:
+  dataset_root: datastes  # train/val/test 内均为同名 JPG + Labelme JSON
+  class_names: [cat]
+  num_workers: 4
+
+model:
+  backbone: resnet50_fpn
+  pretrained: true
+  trainable_backbone_layers: 3  # 与 EXP-001 相同
+  min_size: 640
+  max_size: 1024
+
+training:
+  epochs: 30
+  batch_size: 8         # 实验变量：基线为 4，本实验增大到 8
+  learning_rate: 0.005  # 与 EXP-001 相同，便于单独比较 Batch Size 的影响
+  momentum: 0.9
+  weight_decay: 0.0005
+  step_size: 10
+  gamma: 0.1
+  gradient_clip_norm: 10.0
+  amp: true
+  horizontal_flip_probability: 0.5
+  output_dir: outputs/exp003_batch_8
+
+evaluation:
+  score_threshold: 0.5  # 低于该置信度的预测框不参与过检/漏检统计
+  iou_threshold: 0.5    # IoU 达到该阈值才算正确匹配（TP）
+  max_error_images: 30  # 最多保存多少张过检/漏检对照图
