@@ -1,0 +1,28 @@
+{
+  "version": "5.8.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "cat",
+      "points": [
+        [
+          217.42,
+          114.52
+        ],
+        [
+          339.51,
+          355.52
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "cat001636.jpg",
+  "imageData": null,
+  "imageHeight": 407,
+  "imageWidth": 640
+}
