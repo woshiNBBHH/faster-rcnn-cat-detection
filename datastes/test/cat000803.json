@@ -19,9 +19,27 @@
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
+    },
+    {
+      "label": "cat",
+      "points": [
+        [
+          74.0,
+          220.0
+        ],
+        [
+          135.0,
+          348.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
     }
   ],
-  "imagePath": "../JPGimg/cat000803.jpg",
+  "imagePath": "cat000803.jpg",
   "imageData": null,
   "imageHeight": 428,
   "imageWidth": 640
