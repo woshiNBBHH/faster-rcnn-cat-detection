@@ -34,11 +34,18 @@ def plot_training_curves(csv_path, output_path):
     plt.close(fig)
 
 
-def save_detection_comparison(image, target, prediction, output_path, score_threshold=0.5):
+def _label_name(label, class_names):
+    index = int(label) - 1
+    return class_names[index] if class_names and 0 <= index < len(class_names) else str(int(label))
+
+
+def save_detection_comparison(image, target, prediction, output_path,
+                              score_threshold=0.5, class_names=None):
     fig, axes = plt.subplots(1, 2, figsize=(14, 7))
-    panels = [(axes[0], target["boxes"], None, "Ground Truth"),
-              (axes[1], prediction["boxes"], prediction["scores"], "Prediction")]
-    for axis, boxes, scores, title in panels:
+    panels = [(axes[0], target["boxes"], None, target.get("labels"), "Ground Truth"),
+              (axes[1], prediction["boxes"], prediction["scores"],
+               prediction.get("labels"), "Prediction")]
+    for axis, boxes, scores, labels, title in panels:
         axis.imshow(image)
         axis.set_title(title)
         axis.axis("off")
@@ -49,11 +56,12 @@ def save_detection_comparison(image, target, prediction, output_path, score_thre
             color = "lime" if scores is None else "red"
             axis.add_patch(patches.Rectangle((x1, y1), x2 - x1, y2 - y1,
                                              fill=False, edgecolor=color, linewidth=2))
-            if scores is not None:
-                axis.text(x1, y1, f"cat {float(scores[index]):.3f}", color="white",
+            if labels is not None:
+                name = _label_name(labels[index], class_names)
+                text = name if scores is None else f"{name} {float(scores[index]):.3f}"
+                axis.text(x1, y1, text, color="white",
                           bbox={"facecolor": "red", "alpha": 0.7, "pad": 2})
     fig.tight_layout()
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=160, bbox_inches="tight")
     plt.close(fig)
-

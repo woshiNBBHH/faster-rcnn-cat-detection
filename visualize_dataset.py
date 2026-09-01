@@ -8,7 +8,7 @@ import matplotlib.patches as patches
 from PIL import Image
 
 
-def read_split(dataset_root, split):
+def read_split(dataset_root, split, class_names):
     records = []
     split_dir = dataset_root / split
     for annotation_path in sorted(split_dir.glob("*.json")):
@@ -21,25 +21,31 @@ def read_split(dataset_root, split):
                 width, height = image.size
         boxes = []
         for shape in data.get("shapes", []):
-            if shape.get("label") != "cat" or len(shape.get("points", [])) < 2:
+            label = shape.get("label")
+            if label not in class_names or len(shape.get("points", [])) < 2:
                 continue
             xs = [point[0] for point in shape["points"]]
             ys = [point[1] for point in shape["points"]]
-            boxes.append([min(xs), min(ys), max(xs), max(ys)])
+            boxes.append({"label": label, "box": [min(xs), min(ys), max(xs), max(ys)]})
         records.append({"image": image_path, "width": width, "height": height, "boxes": boxes})
     return records
 
 
-def main(dataset_root, output_dir):
+def main(dataset_root, output_dir, class_names):
     dataset_root, output_dir = Path(dataset_root), Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    datasets = {split: read_split(dataset_root, split) for split in ("train", "val", "test")}
+    datasets = {split: read_split(dataset_root, split, class_names) for split in ("train", "val", "test")}
 
     split_counts = {split: len(records) for split, records in datasets.items()}
     box_counts = {split: sum(len(record["boxes"]) for record in records) for split, records in datasets.items()}
+    class_counts = {
+        name: sum(box["label"] == name for records in datasets.values()
+                  for record in records for box in record["boxes"])
+        for name in class_names
+    }
     all_records = [record for records in datasets.values() for record in records]
     resolutions = Counter((record["width"], record["height"]) for record in all_records)
-    summary = {"image_counts": split_counts, "box_counts": box_counts,
+    summary = {"image_counts": split_counts, "box_counts": box_counts, "class_counts": class_counts,
                "total_images": len(all_records), "total_boxes": sum(box_counts.values()),
                "resolution_counts": {f"{w}x{h}": count for (w, h), count in resolutions.items()}}
     (output_dir / "dataset_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -66,9 +72,12 @@ def main(dataset_root, output_dir):
         axis.imshow(image)
         axis.set_title(record["image"].name)
         axis.axis("off")
-        for x1, y1, x2, y2 in record["boxes"]:
+        for box_info in record["boxes"]:
+            x1, y1, x2, y2 = box_info["box"]
             axis.add_patch(patches.Rectangle((x1, y1), x2 - x1, y2 - y1,
                                              fill=False, edgecolor="lime", linewidth=2))
+            axis.text(x1, y1, box_info["label"], color="white",
+                      bbox={"facecolor": "green", "alpha": 0.7, "pad": 1})
     fig.tight_layout()
     fig.savefig(output_dir / "annotated_samples.png", dpi=160)
     plt.close(fig)
@@ -79,5 +88,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-root", default="datastes")
     parser.add_argument("--output-dir", default="outputs/dataset_visualization")
+    parser.add_argument("--class-names", nargs="+", default=["cat"])
     args = parser.parse_args()
-    main(args.dataset_root, args.output_dir)
+    main(args.dataset_root, args.output_dir, args.class_names)

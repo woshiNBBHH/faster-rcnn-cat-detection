@@ -9,19 +9,25 @@ from torchvision.transforms.functional import pil_to_tensor
 
 
 class LabelmeDetectionDataset(Dataset):
-    """Read paired JPG/Labelme JSON files from one split."""
+    """Read paired images and Labelme JSON files from one split."""
 
     def __init__(self, dataset_root, split, class_names, flip_probability=0.0):
-        # Each split contains paired files such as cat000001.jpg + cat000001.json.
+        # Each split contains paired files with the same stem, such as image001.jpg + image001.json.
         self.split_dir = Path(dataset_root) / split
         self.flip_probability = flip_probability
         self.class_to_id = {name: index + 1 for index, name in enumerate(class_names)}
         self.samples = []
 
+        image_extensions = (".jpg", ".jpeg", ".png")
         for annotation_path in sorted(self.split_dir.glob("*.json")):
-            image_path = self.split_dir / f"{annotation_path.stem}.jpg"
-            if not image_path.exists():
-                raise FileNotFoundError(f"No matching image for {annotation_path}: {image_path}")
+            image_path = next(
+                (self.split_dir / f"{annotation_path.stem}{suffix}" for suffix in image_extensions
+                 if (self.split_dir / f"{annotation_path.stem}{suffix}").exists()),
+                None,
+            )
+            if image_path is None:
+                expected = ", ".join(f"{annotation_path.stem}{suffix}" for suffix in image_extensions)
+                raise FileNotFoundError(f"No matching image for {annotation_path}; expected one of: {expected}")
             self.samples.append((image_path, annotation_path))
 
         if not self.samples:

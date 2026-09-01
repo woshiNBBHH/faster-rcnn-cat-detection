@@ -49,6 +49,7 @@ def main(config_path):
         len(data_cfg["class_names"]) + 1,
         model_cfg["pretrained"], model_cfg["trainable_backbone_layers"],
         model_cfg["min_size"], model_cfg["max_size"],
+        config["evaluation"].get("nms_threshold", 0.5),
     ).to(device)
     parameters = [parameter for parameter in model.parameters() if parameter.requires_grad]
     optimizer = torch.optim.SGD(parameters, lr=train_cfg["learning_rate"],

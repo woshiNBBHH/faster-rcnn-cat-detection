@@ -128,9 +128,8 @@ def main(args):
         model_cfg["trainable_backbone_layers"],
         model_cfg["min_size"],
         model_cfg["max_size"],
+        eval_cfg.get("nms_threshold", 0.5),
     )
-    if "nms_threshold" in eval_cfg:
-        model.roi_heads.nms_thresh = float(eval_cfg["nms_threshold"])
     load_checkpoint(model, args.checkpoint)
     model.to(device).eval()
 

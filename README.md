@@ -1,6 +1,6 @@
-# Cat Faster R-CNN
+# Cat and Dog Faster R-CNN
 
-基于 PyTorch/Torchvision 的猫目标检测项目，模型为 Faster R-CNN + ResNet-50-FPN。
+基于 PyTorch/Torchvision 的猫/狗目标检测项目，模型为 Faster R-CNN + ResNet-50-FPN。原来的猫单类别配置继续保留。
 
 ## PyCharm 设置
 
@@ -20,6 +20,37 @@ python evaluate.py --config configs/baseline.yaml --checkpoint outputs/exp001_ba
 python predict.py /path/to/image.jpg --config configs/baseline.yaml --checkpoint outputs/exp001_baseline/best.pt
 tensorboard --logdir outputs
 ```
+
+## 猫狗数据集自动预标注
+
+新数据集使用独立目录 `cat_dog_dataset_53337/`，不会与原来的 `datastes/` 混合。
+
+先使用 COCO 预训练 Faster R-CNN 生成猫、狗两类 Labelme 矩形预标注：
+
+```bash
+python auto_label_labelme.py \
+  --image-dir /path/to/cat_dog_detection_datasets/images \
+  --output-dir /path/to/cat_dog_detection_datasets/annotations_labelme \
+  --score-threshold 0.8
+```
+
+自动标注完成并人工抽检后，按 8:1:1 建立独立训练集：
+
+```bash
+python prepare_cat_dog_dataset.py \
+  --image-dir /path/to/cat_dog_detection_datasets/images \
+  --annotation-dir /path/to/cat_dog_detection_datasets/annotations_labelme \
+  --output-root cat_dog_dataset_53337 \
+  --mode hardlink
+```
+
+训练猫狗双类别模型：
+
+```bash
+python train.py --config configs/cat_dog_baseline.yaml
+```
+
+自动预标注不是人工真值。正式训练前应抽检漏标、错标、猫狗类别混淆及重复框。
 
 每份配置使用独立的输出目录，训练过程会生成 `metrics.csv`、TensorBoard 日志、`last.pt` 和验证集 mAP 最优的 `best.pt`，不同实验不会相互覆盖。
 

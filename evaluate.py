@@ -24,7 +24,8 @@ def main(config_path, checkpoint_path, split):
     loader = DataLoader(dataset, batch_size=config["training"]["batch_size"], shuffle=False,
                         num_workers=data_cfg["num_workers"], collate_fn=collate_fn)
     model = build_model(len(data_cfg["class_names"]) + 1, False,
-                        model_cfg["trainable_backbone_layers"], model_cfg["min_size"], model_cfg["max_size"])
+                        model_cfg["trainable_backbone_layers"], model_cfg["min_size"], model_cfg["max_size"],
+                        config["evaluation"].get("nms_threshold", 0.5))
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     model.load_state_dict(checkpoint["model"])
     model.to(device)
@@ -54,7 +55,7 @@ def main(config_path, checkpoint_path, split):
                     cpu_prediction = {key: value.detach().cpu() for key, value in prediction.items()}
                     save_detection_comparison(to_pil_image(image), target, cpu_prediction,
                                               output_dir / "error_cases" / f"error_{saved:03d}.jpg",
-                                              eval_cfg["score_threshold"])
+                                              eval_cfg["score_threshold"], data_cfg["class_names"])
                     saved += 1
                     if saved >= eval_cfg["max_error_images"]:
                         break

@@ -1,0 +1,38 @@
+# CAT-DOG-001：猫狗双类别 Faster R-CNN 基线。
+experiment:
+  id: CAT-DOG-001
+  name: cat_dog_baseline
+
+seed: 42
+device: auto
+
+data:
+  dataset_root: cat_dog_dataset_53337
+  class_names: [cat, dog]
+  num_workers: 4
+
+model:
+  backbone: resnet50_fpn
+  pretrained: true
+  trainable_backbone_layers: 3
+  min_size: 800
+  max_size: 1333
+
+training:
+  epochs: 30
+  batch_size: 4
+  learning_rate: 0.001
+  momentum: 0.9
+  weight_decay: 0.0005
+  step_size: 10
+  gamma: 0.1
+  gradient_clip_norm: 10.0
+  amp: true
+  horizontal_flip_probability: 0.5
+  output_dir: outputs/cat_dog_baseline
+
+evaluation:
+  score_threshold: 0.8
+  iou_threshold: 0.5
+  nms_threshold: 0.5
+  max_error_images: 100
