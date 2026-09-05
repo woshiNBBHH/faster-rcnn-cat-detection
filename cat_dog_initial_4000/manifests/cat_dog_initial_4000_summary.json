@@ -1,0 +1,17 @@
+{
+  "seed": 42,
+  "total": 4000,
+  "samples_per_source": {
+    "coco2017": 1000,
+    "lvis": 1000,
+    "openimages": 1000,
+    "voc": 1000
+  },
+  "split_counts": {
+    "test": 400,
+    "train": 3200,
+    "val": 400
+  },
+  "mode": "manifest",
+  "manifest": "cat_dog_initial_4000/manifests/cat_dog_initial_4000.csv"
+}

@@ -72,3 +72,18 @@ python visualize_dataset.py
 ## 数据约定
 
 代码使用项目内的 `datastes/{train,val,test}`。每个分组目录同时存放同名图片和标注，例如 `cat000001.jpg` 与 `cat000001.json`。程序按文件名配对并忽略 Labelme JSON 内的旧 `imagePath`。普通矩形直接使用；有向矩形和多边形会转换为水平外接框。
+# Initial 4,000-image cat/dog baseline
+
+Create the fixed source-balanced manifest (1,000 images from each of COCO,
+LVIS, Open Images, and VOC; seed 42):
+
+```bash
+python sample_cat_dog_initial_4000.py \
+  --image-dir /path/to/cat_dog_detection_datasets/images \
+  --output-root cat_dog_initial_4000 \
+  --mode manifest
+```
+
+On the training machine, use `--mode symlink` to materialize the selected
+images without copying their contents. Generate and manually review Labelme
+annotations before using `configs/cat_dog_baseline_4000.yaml` for training.
