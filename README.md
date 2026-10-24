@@ -50,6 +50,39 @@ python prepare_cat_dog_dataset.py \
 python train.py --config configs/cat_dog_baseline.yaml
 ```
 
+### Kaggle 双 T4 训练
+
+`train.py` 同时兼容单卡和 PyTorch DistributedDataParallel（DDP）。Kaggle
+选择 `GPU T4 x2` 后，使用下面的命令启动两个训练进程：
+
+```bash
+torchrun --standalone --nproc_per_node=2 \
+  train.py --config configs/cat_dog_baseline.yaml
+```
+
+配置中的 `training.batch_size` 是**每张 GPU**的批量大小。因此双卡时：
+
+```text
+global_batch_size = training.batch_size × 2
+```
+
+例如需要保持原单卡全局 batch size 4 时，将配置写成 `batch_size: 2`；若配置
+仍为 `batch_size: 4`，双卡全局 batch size 将变成 8。`data.num_workers` 同样是
+每个进程的 worker 数，Kaggle 只有 4 个 CPU 核时建议设为 2。
+
+只有 rank 0 会执行完整验证、写 TensorBoard/CSV、绘图和保存检查点。保存的
+`best.pt`/`last.pt` 不带 `module.` 前缀，可直接用于现有单卡 `evaluate.py` 和
+`predict.py`。
+
+从旧 V1 权重继续微调时，在配置中增加：
+
+```yaml
+training:
+  initial_checkpoint: /kaggle/input/.../cat_dog_v1_best.pt
+```
+
+该选项只加载模型权重并从新的 epoch 1 开始，不恢复旧优化器和学习率状态。
+
 自动预标注不是人工真值。正式训练前应抽检漏标、错标、猫狗类别混淆及重复框。
 
 每份配置使用独立的输出目录，训练过程会生成 `metrics.csv`、TensorBoard 日志、`last.pt` 和验证集 mAP 最优的 `best.pt`，不同实验不会相互覆盖。
