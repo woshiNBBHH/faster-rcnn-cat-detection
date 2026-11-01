@@ -94,6 +94,70 @@ training:
 
 执行测试集评估后，会在对应实验目录的 `evaluation_test/` 下生成 `metrics.json`、训练曲线和过检/漏检图片的“原标注—模型预测”对照图。
 
+## 第一版猫狗脸两级检测
+
+第一版流水线先使用已有猫狗模型定位身体，再在身体区域内检测
+`cat_face` / `dog_face`。ArcFace 身份识别将在脸部检测数据稳定后接入。
+
+### 1. 抽取首批标注图片
+
+下面的命令按猫狗个体均衡抽取各 500 张，每个个体最多 5 张，避免标注集被少数长视频占满：
+
+```bash
+python sample_face_annotation_images.py \
+  --image-dir /path/to/03_siftimage \
+  --output-dir face_annotation_batch_v1 \
+  --cat-count 500 \
+  --dog-count 500 \
+  --max-per-identity 5
+```
+
+使用 LabelMe 只画矩形框，标签必须是 `cat_face` 或 `dog_face`。框应包含眼睛、
+鼻子、嘴和主要脸部轮廓；耳朵可以部分位于框外。无清晰脸部的图片保存空 JSON，
+作为负样本。`annotation_manifest.csv` 用于记录人工复核状态。
+
+### 2. 验证标注并划分数据
+
+```bash
+python prepare_face_dataset.py \
+  --image-dir face_annotation_batch_v1 \
+  --annotation-dir face_annotation_batch_v1 \
+  --output-root cat_dog_face_dataset \
+  --mode hardlink
+```
+
+脚本会检查标签名称，并按动物个体进行互斥的 8:1:1 划分，避免同一只动物的相邻
+视频帧同时进入训练集和测试集。包含猫狗同框的图片可增加
+`--allow-mixed-species`。
+
+### 3. 训练脸部检测模型
+
+```bash
+python train.py --config configs/cat_dog_face_baseline.yaml
+```
+
+Kaggle 双 T4：
+
+```bash
+torchrun --standalone --nproc_per_node=2 \
+  train.py --config configs/cat_dog_face_baseline.yaml
+```
+
+### 4. 两级推理并导出脸部裁剪图
+
+```bash
+python cascade_predict.py /path/to/image.jpg \
+  --body-config configs/cat_dog_baseline.yaml \
+  --body-checkpoint /path/to/cat_dog_best.pt \
+  --face-config configs/cat_dog_face_baseline.yaml \
+  --face-checkpoint outputs/cat_dog_face_baseline/best.pt \
+  --face-crop-dir outputs/face_crops \
+  --output outputs/cascade_prediction.jpg
+```
+
+默认只保留身体类别与脸部类别一致的结果，例如 `cat` 身体内只接受
+`cat_face`。脸部裁剪图随后用于制作 ArcFace 个体识别数据集。
+
 ## 数据集可视化
 
 ```bash
