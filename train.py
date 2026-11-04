@@ -1,5 +1,6 @@
 import argparse
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import torch
@@ -28,7 +29,14 @@ def setup_distributed(configured_device):
             raise RuntimeError("Distributed training requires CUDA GPUs")
         local_rank = int(os.environ["LOCAL_RANK"])
         torch.cuda.set_device(local_rank)
-        dist.init_process_group(backend="nccl", init_method="env://")
+        # Rank 0 performs validation/checkpoint I/O while the other ranks wait.
+        # The previous 10-minute timeout was too short for Faster R-CNN COCO
+        # evaluation plus the first checkpoint write on Kaggle.
+        dist.init_process_group(
+            backend="nccl",
+            init_method="env://",
+            timeout=timedelta(hours=1),
+        )
         rank = dist.get_rank()
         device = torch.device("cuda", local_rank)
     else:
@@ -70,7 +78,7 @@ def load_initial_checkpoint(model, checkpoint_path):
 def evaluate(model, loader, device, score_threshold=0.5, iou_threshold=0.5):
     metric = DetectionMetrics(score_threshold, iou_threshold)
     model.eval()
-    for images, targets in tqdm(loader, desc="Validating", leave=False):
+    for images, targets in tqdm(loader, desc="Validating", leave=True):
         images = [image.to(device, non_blocking=True) for image in images]
         predictions = model(images)
         metric.update(predictions, list(targets))
@@ -231,6 +239,7 @@ def main(config_path):
 
             metrics = None
             if main_process:
+                print(f"Epoch {epoch}: validation started", flush=True)
                 metrics = evaluate(
                     unwrap_model(model),
                     val_loader,
@@ -238,6 +247,7 @@ def main(config_path):
                     config["evaluation"]["score_threshold"],
                     config["evaluation"]["iou_threshold"],
                 )
+                print(f"Epoch {epoch}: validation finished", flush=True)
 
             # Rank 1 waits while rank 0 validates, then both advance the scheduler.
             if distributed:
@@ -263,9 +273,6 @@ def main(config_path):
                     "miss_rate": metrics["miss_rate"],
                 }
                 append_csv(output_dir / "metrics.csv", row)
-                plot_training_curves(
-                    output_dir / "metrics.csv", output_dir / "training_curves.png"
-                )
                 for key, value in row.items():
                     if key != "epoch":
                         writer.add_scalar(key, value, epoch)
@@ -282,15 +289,24 @@ def main(config_path):
                     "world_size": world_size,
                     "global_batch_size": train_cfg["batch_size"] * world_size,
                 }
+                print(f"Epoch {epoch}: saving last.pt", flush=True)
                 torch.save(checkpoint, output_dir / "last.pt")
                 if map_value > best_map:
                     best_map = map_value
+                    print(f"Epoch {epoch}: saving best.pt", flush=True)
                     torch.save(checkpoint, output_dir / "best.pt")
-                print(row)
+                print(row, flush=True)
 
             # Do not let rank 1 enter the next DDP forward pass while rank 0 saves.
             if distributed:
                 dist.barrier()
+
+        if main_process:
+            # Plot once after training instead of making the other DDP rank wait
+            # for Matplotlib after every epoch.
+            plot_training_curves(
+                output_dir / "metrics.csv", output_dir / "training_curves.png"
+            )
 
         if writer is not None:
             writer.close()

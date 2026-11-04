@@ -9,7 +9,14 @@ class DetectionMetrics:
     def __init__(self, score_threshold=0.5, iou_threshold=0.5):
         self.score_threshold = score_threshold
         self.iou_threshold = iou_threshold
-        self.map_metric = MeanAveragePrecision(box_format="xyxy", iou_type="bbox")
+        # Validation is intentionally performed in full on rank 0. TorchMetrics
+        # would otherwise try to synchronize metric state with rank 1 during
+        # compute(), while rank 1 is already waiting at a training barrier.
+        self.map_metric = MeanAveragePrecision(
+            box_format="xyxy",
+            iou_type="bbox",
+            sync_on_compute=False,
+        )
         self.tp = 0
         self.fp = 0
         self.fn = 0
