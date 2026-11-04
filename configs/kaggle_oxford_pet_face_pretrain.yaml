@@ -7,8 +7,8 @@ seed: 42
 device: auto
 
 data:
-  # Kaggle数据集名称请保持为 oxford-pet-face-labelme。
-  dataset_root: /kaggle/input/oxford-pet-face-labelme/labelme
+  # Notebook启动训练前设置 OXFORD_FACE_DATASET_ROOT；兼容Kaggle不同挂载层级。
+  dataset_root: ${OXFORD_FACE_DATASET_ROOT}
   class_names: [cat_face, dog_face]
   # DDP下为每个进程的worker数；Kaggle通常只有4个CPU核心。
   num_workers: 2

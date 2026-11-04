@@ -1,4 +1,5 @@
 import csv
+import os
 import random
 from pathlib import Path
 
@@ -8,7 +9,21 @@ import yaml
 
 def load_config(path):
     with open(path, "r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
+        config = yaml.safe_load(file)
+
+    def expand_environment_variables(value):
+        if isinstance(value, str):
+            return os.path.expandvars(value)
+        if isinstance(value, list):
+            return [expand_environment_variables(item) for item in value]
+        if isinstance(value, dict):
+            return {
+                key: expand_environment_variables(item)
+                for key, item in value.items()
+            }
+        return value
+
+    return expand_environment_variables(config)
 
 
 def set_seed(seed):
