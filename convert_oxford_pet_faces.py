@@ -70,7 +70,9 @@ def parse_xml(xml_path, images_dir):
                 "group_id": None,
                 "description": "Oxford-IIIT Pet head ROI",
                 "shape_type": "rectangle",
-                "flags": {"source": "oxford_iiit_pet"},
+                # LabelMe requires every flag value to be boolean. Source
+                # provenance is already retained in the description field.
+                "flags": {},
                 "mask": None,
             }
         )
@@ -80,7 +82,7 @@ def parse_xml(xml_path, images_dir):
 
     annotation = {
         "version": "5.5.0",
-        "flags": {"source": "oxford_iiit_pet"},
+        "flags": {},
         "shapes": shapes,
         "imagePath": filename,
         "imageData": None,
