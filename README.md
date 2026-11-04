@@ -158,6 +158,28 @@ python cascade_predict.py /path/to/image.jpg \
 默认只保留身体类别与脸部类别一致的结果，例如 `cat` 身体内只接受
 `cat_face`。脸部裁剪图随后用于制作 ArcFace 个体识别数据集。
 
+### Oxford-IIIT Pet公开数据预训练
+
+Oxford-IIIT Pet官方数据包含家猫家犬图片和头部ROI。本项目使用
+`convert_oxford_pet_faces.py` 将官方XML转换为 `cat_face` / `dog_face` LabelMe
+矩形框，并按类别分层划分训练、验证、测试集：
+
+```bash
+python convert_oxford_pet_faces.py \
+  --source-root "../cat&dog/06_public_datasets/oxford_iiit_pet/source" \
+  --output-root "../cat&dog/06_public_datasets/oxford_iiit_pet/labelme" \
+  --mode hardlink
+```
+
+使用公开数据训练猫狗脸检测基线：
+
+```bash
+python train.py --config configs/oxford_pet_face_pretrain.yaml
+```
+
+训练完成后，把 `outputs/oxford_pet_face_pretrain/best.pt` 作为自建脸部数据微调
+的初始权重。公开数据许可为CC BY-SA 4.0，图片版权仍属于原始所有者。
+
 ## 数据集可视化
 
 ```bash
